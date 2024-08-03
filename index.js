@@ -39,7 +39,7 @@ bot.onText(/\/start/, (msg) => {
 });
 
 // Обработчик нажатий на кнопки
-bot.on('callback_query', (callbackQuery) => {
+bot.on('callback_query', async (callbackQuery) => {
   const chatId = callbackQuery.message.chat.id;
   const data = callbackQuery.data;
 
@@ -53,16 +53,48 @@ bot.on('callback_query', (callbackQuery) => {
       }
     });
   } else if (data === 'get_nutrition_tips') {
-    bot.sendMessage(chatId, `Здесь ты можешь получить советы по питанию 🍏 или выбрать одно из направлений, в котором хочешь стать лучше 🌟. Просто напиши, что тебе нужно. Например: 
-1) Хочу меньше уставать и не болеть
-2) Хочу держать свое тело в хорошей форме
-3) Хочу быть более продуктивным`, {
+    const options = {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "Хочу меньше уставать и не болеть", callback_data: "less_tired" }],
+          [{ text: "Хочу держать свое тело в хорошей форме", callback_data: "stay_fit" }],
+          [{ text: "Хочу быть более продуктивным", callback_data: "be_more_productive" }],
+          [{ text: "Задам вопрос сам", callback_data: "ask_question" }],
+          [{ text: "Назад ↩️", callback_data: "back_to_start" }]
+        ]
+      }
+    };
+
+    bot.sendMessage(chatId, `Здесь ты можешь получить советы по питанию 🍏 или выбрать одно из направлений, в котором хочешь стать лучше 🌟. Просто нажми на одну из кнопок ниже:`, options);
+  } else if (data === 'back_to_start') {
+    sendStartMessage(chatId);
+  } else if (data === 'less_tired') {
+    const response = await gpt('', 'Хочу меньше уставать и не болеть');
+    bot.sendMessage(chatId, response.content, {
       reply_markup: {
         inline_keyboard: [[{ text: "Назад ↩️", callback_data: "back_to_start" }]]
       }
     });
-  } else if (data === 'back_to_start') {
-    sendStartMessage(chatId);
+  } else if (data === 'stay_fit') {
+    const response = await gpt('', 'Хочу держать свое тело в хорошей форме');
+    bot.sendMessage(chatId, response.content, {
+      reply_markup: {
+        inline_keyboard: [[{ text: "Назад ↩️", callback_data: "back_to_start" }]]
+      }
+    });
+  } else if (data === 'be_more_productive') {
+    const response = await gpt('', 'Хочу быть более продуктивным');
+    bot.sendMessage(chatId, response.content, {
+      reply_markup: {
+        inline_keyboard: [[{ text: "Назад ↩️", callback_data: "back_to_start" }]]
+      }
+    });
+  } else if (data === 'ask_question') {
+    bot.sendMessage(chatId, 'Пожалуйста, напиши свой вопрос, и я постараюсь на него ответить.', {
+      reply_markup: {
+        inline_keyboard: [[{ text: "Назад ↩️", callback_data: "back_to_start" }]]
+      }
+    });
   }
 });
 
@@ -77,7 +109,6 @@ bot.on('message', async (msg) => {
     if (state === 'check_composition') {
       if (msg.text) {
         const response = await gpt('', msg.text);
-        console.log(response);
         bot.sendMessage(chatId, response.content, {
           reply_markup: {
             inline_keyboard: [[{ text: "Назад ↩️", callback_data: "back_to_start" }]]
@@ -91,7 +122,6 @@ bot.on('message', async (msg) => {
         const fileUrl = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
 
         const response = await gpt(fileUrl);
-        console.log(response);
         bot.sendMessage(chatId, response.content, {
           reply_markup: {
             inline_keyboard: [[{ text: "Назад ↩️", callback_data: "back_to_start" }]]
@@ -100,7 +130,6 @@ bot.on('message', async (msg) => {
       }
     } else if (state === 'get_nutrition_tips') {
       const response = await gpt('', msg.text);
-      console.log(response);
       bot.sendMessage(chatId, response.content, {
         reply_markup: {
           inline_keyboard: [[{ text: "Назад ↩️", callback_data: "back_to_start" }]]
