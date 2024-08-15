@@ -2,13 +2,14 @@ import TelegramBot from 'node-telegram-bot-api';
 import gpt from './gpt.js';
 
 // Замените 'YOUR_TELEGRAM_BOT_TOKEN' на токен вашего бота
-const token = '6925994505:AAFoY85wy6LYSWyeBcif4erGrW1b1C1n0oY';
+const token = '1209372281:AAHJvq_aMoDCiap21uPzLVF1OvaotqMvGg0';
 
 // Создаем экземпляр бота
 const bot = new TelegramBot(token, { polling: true });
 
 // Хранение состояния пользователей
 const userStates = {};
+const previousMessages = {}; // Хранение предыдущих сообщений для возврата
 
 // Функция для отправки стартового сообщения
 const sendStartMessage = (chatId) => {
@@ -16,8 +17,10 @@ const sendStartMessage = (chatId) => {
     reply_markup: {
       inline_keyboard: [
         [
-          { text: "Проверить состав продукта", callback_data: "check_composition" },
-          { text: "Получить советы по питанию", callback_data: "get_nutrition_tips" }
+          { text: "📸 Проверить состав продукта", callback_data: "check_composition" }
+        ],
+        [
+          { text: "💡 Получить советы по питанию", callback_data: "get_nutrition_tips" }
         ]
       ]
     }
@@ -39,7 +42,6 @@ const sendStartMessage = (chatId) => {
     });
 };
 
-
 // Обработчик команды /start
 bot.onText(/\/start/, (msg) => {
   sendStartMessage(msg.chat.id);
@@ -54,9 +56,11 @@ bot.on('callback_query', async (callbackQuery) => {
   userStates[chatId] = data;
 
   if (data === 'check_composition') {
-    bot.sendMessage(chatId, 'Сфотографируй или напиши состав продукта, и я предоставлю информацию об ингредиентах, вызывающих сомнение.', {
+    const message = 'Сфотографируй или напиши состав продукта, и я предоставлю информацию об ингредиентах, вызывающих сомнение.';
+    previousMessages[chatId] = message; // Сохраняем предыдущее сообщение
+    bot.sendMessage(chatId, message, {
       reply_markup: {
-        inline_keyboard: [[{ text: "Назад ↩️", callback_data: "back_to_start" }]]
+        inline_keyboard: [[{ text: "Назад ↩️", callback_data: "back_to_previous" }]]
       }
     });
   } else if (data === 'get_nutrition_tips') {
@@ -72,28 +76,39 @@ bot.on('callback_query', async (callbackQuery) => {
       }
     };
 
-    bot.sendMessage(chatId, `Здесь ты можешь получить советы по питанию 🍏 или выбрать одно из направлений, в котором хочешь стать лучше 🌟. Просто нажми на одну из кнопок ниже:`, options);
+    const message = `Здесь ты можешь получить советы по питанию 🍏 или выбрать одно из направлений, в котором хочешь стать лучше 🌟. Просто нажми на одну из кнопок ниже:`;
+    previousMessages[chatId] = message; // Сохраняем предыдущее сообщение
+    bot.sendMessage(chatId, message, options);
+  } else if (data === 'back_to_previous') {
+    const previousMessage = previousMessages[chatId];
+    if (previousMessage) {
+      bot.sendMessage(chatId, previousMessage, {
+        reply_markup: {
+          inline_keyboard: [[{ text: "Назад ↩️", callback_data: "back_to_start" }]]
+        }
+      });
+    }
   } else if (data === 'back_to_start') {
     sendStartMessage(chatId);
   } else if (data === 'less_tired') {
     const response = await gpt('', 'Хочу меньше уставать и не болеть');
     bot.sendMessage(chatId, response.content, {
       reply_markup: {
-        inline_keyboard: [[{ text: "Назад ↩️", callback_data: "back_to_start" }]]
+        inline_keyboard: [[{ text: "Назад ↩️", callback_data: "back_to_previous" }]]
       }
     });
   } else if (data === 'stay_fit') {
     const response = await gpt('', 'Хочу держать свое тело в хорошей форме');
     bot.sendMessage(chatId, response.content, {
       reply_markup: {
-        inline_keyboard: [[{ text: "Назад ↩️", callback_data: "back_to_start" }]]
+        inline_keyboard: [[{ text: "Назад ↩️", callback_data: "back_to_previous" }]]
       }
     });
   } else if (data === 'be_more_productive') {
     const response = await gpt('', 'Хочу быть более продуктивным');
     bot.sendMessage(chatId, response.content, {
       reply_markup: {
-        inline_keyboard: [[{ text: "Назад ↩️", callback_data: "back_to_start" }]]
+        inline_keyboard: [[{ text: "Назад ↩️", callback_data: "back_to_previous" }]]
       }
     });
   } else if (data === 'ask_question') {
@@ -118,7 +133,7 @@ bot.on('message', async (msg) => {
         const response = await gpt('', msg.text);
         bot.sendMessage(chatId, response.content, {
           reply_markup: {
-            inline_keyboard: [[{ text: "Назад ↩️", callback_data: "back_to_start" }]]
+            inline_keyboard: [[{ text: "Назад ↩️", callback_data: "back_to_previous" }]]
           }
         });
       } else if (msg.photo) {
@@ -131,7 +146,7 @@ bot.on('message', async (msg) => {
         const response = await gpt(fileUrl);
         bot.sendMessage(chatId, response.content, {
           reply_markup: {
-            inline_keyboard: [[{ text: "Назад ↩️", callback_data: "back_to_start" }]]
+            inline_keyboard: [[{ text: "Назад ↩️", callback_data: "back_to_previous" }]]
           }
         });
       }
