@@ -2,7 +2,7 @@ import TelegramBot from 'node-telegram-bot-api';
 import gpt from './gpt.js';
 
 // Замените 'YOUR_TELEGRAM_BOT_TOKEN' на токен вашего бота
-const token = '1209372281:AAHJvq_aMoDCiap21uPzLVF1OvaotqMvGg0';
+const token = '6925994505:AAFoY85wy6LYSWyeBcif4erGrW1b1C1n0oY';
 
 // Создаем экземпляр бота
 const bot = new TelegramBot(token, { polling: true });
